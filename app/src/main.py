@@ -4,6 +4,7 @@ from auth.base_config import auth_backend, fastapi_users, current_user
 from auth.schemas import UserCreate, UserRead
 
 from user_preferences.router import router as router_preferences
+from restaurants.router import router as router_restaurants
 
 
 app = FastAPI(
@@ -28,3 +29,5 @@ async def authenticated_route(user: User = Depends(current_user)):
     return {"message": f"Hello {user.email}!"}
 
 app.include_router(router_preferences)
+
+app.include_router(router_restaurants)

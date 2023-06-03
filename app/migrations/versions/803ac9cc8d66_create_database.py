@@ -1,8 +1,8 @@
-"""Database creation
+"""Create database
 
-Revision ID: 78b1816547d5
+Revision ID: 803ac9cc8d66
 Revises: 
-Create Date: 2023-05-31 21:43:50.938822
+Create Date: 2023-06-03 15:13:14.548865
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '78b1816547d5'
+revision = '803ac9cc8d66'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -45,11 +45,8 @@ def upgrade() -> None:
     )
     op.create_table('user_preferences',
                     sa.Column('user_id', sa.Integer(), nullable=False),
-                    sa.Column('preferred_cuisine', sa.ARRAY(sa.String()), nullable=True),
                     sa.Column('preferred_ingredients', sa.ARRAY(sa.String()), nullable=True),
-                    sa.Column('disliked_ingredients', sa.ARRAY(sa.String()), nullable=True),
                     sa.Column('allergens', sa.ARRAY(sa.String()), nullable=True),
-                    sa.Column('nutritional_preferences', sa.ARRAY(sa.String()), nullable=True),
                     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
                     sa.PrimaryKeyConstraint('user_id')
     )
