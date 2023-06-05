@@ -1,11 +1,10 @@
 from fastapi import Depends, FastAPI
-import uvicorn
-from models.models import User
-from auth.base_config import auth_backend, fastapi_users, current_user
-from auth.schemas import UserCreate, UserRead
+from src.models.models import User
+from src.auth.base_config import auth_backend, fastapi_users, current_user
+from src.auth.schemas import UserCreate, UserRead
 
-from user_preferences.router import router as router_preferences
-from restaurants.router import router as router_restaurants
+from src.user_preferences.router import router as router_preferences
+from src.restaurants.router import router as router_restaurants
 
 
 app = FastAPI(

@@ -1,6 +1,6 @@
 from sqlalchemy import ARRAY, JSON, Boolean, MetaData, Table, Column ,Integer, String, ForeignKey, Float
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable
-from database import Base
+from src.database import Base
 
 metadata = MetaData()
 

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import get_async_session
-from models.models import user_preferences
-from user_preferences.schemas import PreferenceCreate
+from src.database import get_async_session
+from src.models.models import user_preferences
+from src.user_preferences.schemas import PreferenceCreate
 
 router = APIRouter(
     prefix="/preferences",

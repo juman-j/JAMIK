@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import pandas as pd
 
-from database import get_async_session
-from models.models import restaurant, menu
-from restaurants.schemas import RestaurantCreate
+from src.database import get_async_session
+from src.models.models import restaurant, menu
+from src.restaurants.schemas import RestaurantCreate
 
 
 router = APIRouter(
