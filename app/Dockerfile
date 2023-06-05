@@ -1,9 +1,15 @@
 FROM python:3.10.11
 
-COPY . . 
-
-WORKDIR /
-
 RUN pip install poetry
 
+RUN mkdir /fastapi_app
+
+WORKDIR /fastapi_app
+
+COPY . .
+
 RUN poetry install
+
+WORKDIR /fastapi_app
+
+CMD gunicorn src.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8000
