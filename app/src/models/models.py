@@ -26,7 +26,7 @@ branch = Table(
 menu = Table(
     'menu',
     metadata,
-    Column('menu_id', Integer, ForeignKey('restaurant.id'), primary_key=True),
+    Column('restaurant_id', Integer, ForeignKey('restaurant.id'), primary_key=True),
     Column('menu', JSON, nullable=False)
 )
 

@@ -17,30 +17,42 @@ router = APIRouter(
 
 
 @router.post("/")
-async def add_restaurant(new_restaurant: RestaurantCreate, session: AsyncSession = Depends(get_async_session)):
+async def add_restaurant(new_restaurant: RestaurantCreate, 
+                                  session: AsyncSession = Depends(get_async_session)):
+    
+    # Inserting data into the restaurant table
     stmt = insert(restaurant).values(**new_restaurant.dict())
     await session.execute(stmt)
+    
     await session.commit()
     return {"status": "success"}
 
 
+
 @router.post("/menu")
-async def add_menu(restaurant_id: int, menu_file: UploadFile, session: AsyncSession = Depends(get_async_session)):
+async def add_menu(restaurant_name: str, 
+                   menu_file: UploadFile,
+                   session: AsyncSession = Depends(get_async_session)):
+    
     # Создаем временный файл и записываем в него содержимое загруженного файла
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         menu_file.file.seek(0)
         tmp.write(menu_file.file.read())
         tmp.close()
-
-        # Чтение Excel-файла с помощью pandas
+        # Reading an Excel file with pandas
         df = pd.read_excel(tmp.name)
     
-    # Преобразование меню в формат JSON
+    # # convert to json
     menu_json = df.to_json(orient="records")
     
-    # Сохранение меню в базу данных
-    stmt = insert(menu).values(menu_id=restaurant_id, menu=menu_json)
-    await session.execute(stmt)
+    query = select(restaurant.c.restaurant_id).where(restaurant.c.name == restaurant_name)
+    restaurant_id = await session.execute(query)
+    # # Inserting data into the menu table
+    stmt2 = insert(menu).values(restaurant_id = restaurant_id.fetchone()[0], 
+                                menu = menu_json)
+    
+    await session.execute(stmt2)
     await session.commit()
     return {"status": "success"}
+    
 
