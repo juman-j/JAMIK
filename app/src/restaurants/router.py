@@ -1,3 +1,4 @@
+import json
 import tempfile
 from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy import select, insert
@@ -54,5 +55,26 @@ async def add_menu(email: str,
     await session.execute(stmt2)
     await session.commit()
     return {"status": "success"}
+
+
+# @router.get('/menu')
+# async def get_menu(email: str, session: AsyncSession = Depends(get_async_session)):
+#     # get restaurant id
+#     query = select(restaurant.c.id).where(restaurant.c.email == email)
+#     restaurant_id = await session.execute(query)
+    
+#     query = select(menu.c.menu).where(menu.c.restaurant_id == restaurant_id.fetchone()[0])
+#     result = await session.execute(query)
+    
+#     menu = []
+#     for row in result.scalar():
+#         dish = {
+#             "user_id": row[0],
+#             "preferred_ingredients": row[1],
+#             "allergens": row[2]
+#         }
+#         menu.append(dish)
+    
+#     return result
     
 

@@ -1,4 +1,6 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from src.models.models import User
 from src.auth.base_config import auth_backend, fastapi_users, current_user
 from src.auth.schemas import UserCreate, UserRead
@@ -10,6 +12,21 @@ from src.restaurants.router import router as router_restaurants
 app = FastAPI(
     title='JAMIK'
 )
+
+# CORS Setup
+origins = [
+    "http://localhost:4200",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 app.include_router(
     fastapi_users.get_auth_router(auth_backend), 
@@ -31,6 +48,3 @@ app.include_router(router_preferences)
 
 app.include_router(router_restaurants)
 
-
-# if __name__ == "__main__":
-#     uvicorn.run(app, host = "127.0.0.1", port=8000)
