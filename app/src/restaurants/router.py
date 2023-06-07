@@ -34,7 +34,7 @@ async def add_menu(email: str,
                    menu_file: UploadFile,
                    session: AsyncSession = Depends(get_async_session)):
     
-    # Создаем временный файл и записываем в него содержимое загруженного файла
+    # Create a temporary file and write into it the contents of the downloaded file
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         menu_file.file.seek(0)
         tmp.write(menu_file.file.read())
