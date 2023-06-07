@@ -45,6 +45,7 @@ async def add_menu(email: str,
     # convert to json
     menu_json = df.to_json(orient="records")
     # add commets
+    # new row
     
     query = select(restaurant.c.id).where(restaurant.c.email == email)
     restaurant_id = await session.execute(query)
