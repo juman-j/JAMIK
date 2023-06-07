@@ -30,7 +30,7 @@ async def add_restaurant(new_restaurant: RestaurantCreate,
 
 
 @router.post("/menu")
-async def add_menu(restaurant_name: str, 
+async def add_menu(email: str, 
                    menu_file: UploadFile,
                    session: AsyncSession = Depends(get_async_session)):
     
@@ -42,12 +42,12 @@ async def add_menu(restaurant_name: str,
         # Reading an Excel file with pandas
         df = pd.read_excel(tmp.name)
     
-    # # convert to json
+    # convert to json
     menu_json = df.to_json(orient="records")
     
-    query = select(restaurant.c.restaurant_id).where(restaurant.c.name == restaurant_name)
+    query = select(restaurant.c.id).where(restaurant.c.email == email)
     restaurant_id = await session.execute(query)
-    # # Inserting data into the menu table
+    # Inserting data into the menu table
     stmt2 = insert(menu).values(restaurant_id = restaurant_id.fetchone()[0], 
                                 menu = menu_json)
     
