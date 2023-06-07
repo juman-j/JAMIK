@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 
 from src.database import get_async_session
-from src.models.models import restaurant, menu
+from src.models.models import restaurant
 from src.restaurants.schemas import RestaurantCreate
 
 
@@ -30,31 +30,31 @@ async def add_restaurant(new_restaurant: RestaurantCreate,
 
 
 
-@router.post("/menu")
-async def add_menu(email: str, 
-                   menu_file: UploadFile,
-                   session: AsyncSession = Depends(get_async_session)):
+# @router.post("/menu")
+# async def add_menu(email: str, 
+#                    menu_file: UploadFile,
+#                    session: AsyncSession = Depends(get_async_session)):
     
-    # Create a temporary file and write into it the contents of the downloaded file
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        menu_file.file.seek(0)
-        tmp.write(menu_file.file.read())
-        tmp.close()
-        # Reading an Excel file with pandas
-        df = pd.read_excel(tmp.name)
+#     # Create a temporary file and write into it the contents of the downloaded file
+#     with tempfile.NamedTemporaryFile(delete=False) as tmp:
+#         menu_file.file.seek(0)
+#         tmp.write(menu_file.file.read())
+#         tmp.close()
+#         # Reading an Excel file with pandas
+#         df = pd.read_excel(tmp.name)
     
-    # convert to json
-    menu_json = df.to_json(orient="records")
+#     # convert to json
+#     menu_json = df.to_json(orient="records")
     
-    query = select(restaurant.c.id).where(restaurant.c.email == email)
-    restaurant_id = await session.execute(query)
-    # Inserting data into the menu table
-    stmt2 = insert(menu).values(restaurant_id = restaurant_id.fetchone()[0], 
-                                menu = menu_json)
+#     query = select(restaurant.c.id).where(restaurant.c.email == email)
+#     restaurant_id = await session.execute(query)
+#     # Inserting data into the menu table
+#     stmt2 = insert(menu).values(restaurant_id = restaurant_id.fetchone()[0], 
+#                                 menu = menu_json)
     
-    await session.execute(stmt2)
-    await session.commit()
-    return {"status": "success"}
+#     await session.execute(stmt2)
+#     await session.commit()
+#     return {"status": "success"}
 
 
 # @router.get('/menu')
