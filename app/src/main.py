@@ -7,6 +7,7 @@ from src.auth.schemas import UserCreate, UserRead
 
 from src.user_preferences.router import router as router_preferences
 from src.restaurants.router import router as router_restaurants
+from src.menu.router import router as router_menus
 
 
 app = FastAPI(
@@ -25,8 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 app.include_router(
     fastapi_users.get_auth_router(auth_backend), 
@@ -47,4 +46,6 @@ async def authenticated_route(user: User = Depends(current_user)):
 app.include_router(router_preferences)
 
 app.include_router(router_restaurants)
+
+app.include_router(router_menus)
 
