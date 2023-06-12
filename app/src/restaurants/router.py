@@ -71,7 +71,7 @@ async def add_menu(email: str,
         df = pd.read_excel(tmp.name)
         df = df.fillna('')
         
-    
+    # Update previous food to non active
     upd = update(food).where(food.c.restaurant_id == restaurant_id).values(is_active=False)
     await session.execute(upd)
 
