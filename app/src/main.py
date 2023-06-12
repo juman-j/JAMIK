@@ -8,24 +8,32 @@ from src.auth.schemas import UserCreate, UserRead
 from src.user_preferences.router import router as router_preferences
 from src.restaurants.router import router as router_restaurants
 from src.menu.router import router as router_menus
+# from src.restaurants.allergens_insert import router as router_allergens_insert
 
 
 app = FastAPI(
     title='JAMIK'
 )
 
+
 # CORS Setup
 origins = [
     "http://localhost:4200",
 ]
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE", "PATCH", "PUT"],
+    allow_headers=["Content-Type", "Set-Cookie", "Access-Control-Allow-Headers", "Access-Control-Allow-Origin",
+                   "Authorization"],
 )
+
+
+# app.include_router(router_allergens_insert)
+
 
 app.include_router(
     fastapi_users.get_auth_router(auth_backend), 
@@ -33,11 +41,13 @@ app.include_router(
     tags=["auth"]
 )
 
+
 app.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"]
 )
+
 
 @app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(current_user)):
@@ -45,7 +55,9 @@ async def authenticated_route(user: User = Depends(current_user)):
 
 app.include_router(router_preferences)
 
+
 app.include_router(router_restaurants)
+
 
 app.include_router(router_menus)
 
