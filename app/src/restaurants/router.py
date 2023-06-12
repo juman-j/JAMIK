@@ -57,6 +57,7 @@ async def add_menu(email: str,
                    menu_file: UploadFile,
                    session: AsyncSession = Depends(get_async_session)):
     
+    # Get restaurant id
     query = select(restaurant.c.restaurant_id).where(restaurant.c.email == email)
     restaurant_id = await session.execute(query)
     restaurant_id = restaurant_id.fetchone()[0]
