@@ -38,7 +38,7 @@ def translate_to_json(text, to_list):
             output[lang] = response.json()["translations"][0]["text"]
     return json.dumps(output, ensure_ascii=False)
 
-
+# test new name branch
 @router.post("/")
 async def add_restaurant(new_restaurant: RestaurantCreate, 
                                   session: AsyncSession = Depends(get_async_session)):
