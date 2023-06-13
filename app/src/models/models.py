@@ -1,4 +1,5 @@
-from sqlalchemy import ARRAY, JSON, Boolean, Enum, MetaData, Table, Column ,Integer, String, ForeignKey
+from sqlalchemy import ARRAY, Boolean, MetaData, Table, Column ,Integer, String, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable
 from src.database import Base
 
@@ -17,23 +18,34 @@ restaurant = Table(
 food = Table(
     'food',
     metadata,
-    Column('food_id', Integer, primary_key=True),
-    Column('category_name', JSON, nullable=False),
-    Column('food_name', JSON, nullable=False),
+    Column('food_id', Integer, autoincrement=True, primary_key=True),
+    Column('food_name', JSONB, nullable=False),
+    Column('category_name', JSONB, nullable=False),
     Column('dish_picture_url', String, nullable=True),
-    Column('ingredients', JSON, nullable=False),
-    Column('allergens', Integer, ForeignKey('allergen.allergen_id')), # is it possible to enter more than one value here?
+    Column('ingredients', JSONB, nullable=False),
+    Column('diet_restriction', JSONB, nullable=True),
+    Column('nutritional_values', JSONB, nullable=True),
     Column('size', Integer, nullable=False),
+    Column('unit', String, nullable=False, ),
     Column('price', Integer, nullable=False),
-    Column('currency', Enum('USD', 'EUR', 'CZK', name='currency_enum'), nullable=False),
-    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id"))
+    Column('currency', String, nullable=False),
+    Column('is_active', Boolean, nullable=False),
+    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id")),
+    UniqueConstraint('food_name', 'restaurant_id')
+)
+
+food_allergens = Table(
+    'food_allergens',
+    metadata,
+    Column('food_id', Integer, ForeignKey('food.food_id'), primary_key=True),
+    Column('allergen_id', String, ForeignKey('allergen.allergen_id'), primary_key=True)
 )
 
 allergen = Table(
     'allergen',
     metadata,
-    Column('allergen_id', Integer, primary_key=True),
-    Column('allergen_name', JSON, nullable=False)
+    Column('allergen_id', String, primary_key=True),
+    Column('allergen_name', JSONB, nullable=False)
 )
 
 user_history = Table(
@@ -41,7 +53,7 @@ user_history = Table(
     metadata,
     Column('id_user', Integer, ForeignKey("user.id")),
     Column('id_food', Integer, ForeignKey("food.food_id")),
-    Column('rating', Enum('good', 'not good',  name='rating_enum'))
+    Column('rating', String)
 )
 
 user = Table(
@@ -70,6 +82,6 @@ user_preferences = Table(
     'user_preferences', 
     metadata, 
     Column('id', Integer, ForeignKey('user.id'), primary_key=True),
-    Column('preferred_ingredients', Enum('tomato', 'beef', name = 'ingredients_enum')), # Enum?
-    Column('allergens', ARRAY(String)) # Enum?
+    Column('preferred_ingredients', ARRAY(String)), 
+    Column('allergens', ARRAY(String))
 )
