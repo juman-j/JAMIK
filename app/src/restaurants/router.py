@@ -6,16 +6,15 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert 
 
-
+import os
 import pandas as pd
 
 from src.database import get_async_session
 from src.models.models import restaurant, food, food_allergens
 from src.restaurants.schemas import RestaurantCreate
 
-
-url = "https://api-free.deepl.com/v2/translate"
-api_key = "63ba9046-f75c-649e-9113-db66591d0bfd:fx"
+URL = os.environ.get('URL')
+API_KEY = os.environ.get('API_KEY')
 
 target_languages = ["CS", "EN", "DE", "ES", "FR", "UK"]
 
@@ -27,8 +26,8 @@ router = APIRouter(
 def translate_to_json(text, to_list):
     output = {}
     for lang in target_languages:
-        response = requests.post(url, data={
-        "auth_key": api_key,
+        response = requests.post(URL, data={
+        "auth_key": API_KEY,
         "text": text,
         "target_lang": lang
         })
@@ -115,15 +114,17 @@ async def add_menu(email: str,
     return {"status": "success"}
 
 
-@router.get('/menu')
+@router.get('/menu') 
 async def get_menu(email: str, session: AsyncSession = Depends(get_async_session)):
-    # get restaurant id
+    """
+    Maybe to remove this endpoint at all?
+    And make the menu output only for clients...
+    """
     query = select(restaurant.c.restaurant_id).where(restaurant.c.email == email)
     restaurant_id = await session.execute(query)
     
     query = select(food.c.food_name).where(food.c.restaurant_id == restaurant_id.fetchone()[0])
     result = await session.execute(query)
-    print(result.fetchone())
     
     return result.fetchone()[0]
 
