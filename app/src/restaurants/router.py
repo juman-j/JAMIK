@@ -2,7 +2,7 @@ import json
 import tempfile
 from fastapi import APIRouter, Depends, UploadFile
 import requests
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert 
 
@@ -145,24 +145,37 @@ async def add_menu(email: str,
             'restaurant_id': restaurant_id
         }
         
-        ins = insert(food).values(**data).returning(food.c.food_id) 
-        result = await session.execute(ins) 
-        inserted_food_id = result.fetchone()[0] 
-        print(f"Inserted row with food_id: {inserted_food_id}")
-        
-        # ins = insert(food).values(**data).on_conflict_do_update(
-        #     index_elements=['food_name', 'restaurant_id'],set_={'is_active': True}).returning(food.c.food_id)
-        # result = await session.execute(ins)
-        # inserted_food_id = result.fetchone()[0]
-        # print(f"Inserted row with food_id: {inserted_food_id}")
-        
-        
-        for allergen in row.allergens.split(','):
-            if allergen.strip():
-                ins = insert(food_allergens).values([{'food_id': inserted_food_id, 'allergen_id': allergen.strip()}])
-                await session.execute(ins)
-        
+        query = select().where(
+        food.c.food_name == data["food_name"],
+        food.c.ingredients == data["ingredients"],
+        food.c.diet_restriction == data["diet_restriction"],
+        food.c.restaurant_id == restaurant_id)
+        result = await session.execute(query)
 
+        if result.fetchone():
+            food_id = result.fetchone()["food_id"]
+            query = update(food).where(food.c.food_id == food_id).values(**data)
+            await session.execute(query)
+
+            query = delete(food_allergens).where(food_allergens.c.food_id == food_id)
+            await session.execute(query)
+
+            for allergen in row.allergens.split(','):
+                if allergen.strip():
+                    ins = insert(food_allergens).values([{'food_id': food_id, 'allergen_id': allergen.strip()}])
+                    await session.execute(ins)
+
+        else:
+            ins = insert(food).values(**data).returning(food.c.food_id) 
+            result = await session.execute(ins) 
+            inserted_food_id = result.fetchone()[0] 
+            print(f"Inserted row with food_id: {inserted_food_id}")
+            
+            for allergen in row.allergens.split(','):
+                if allergen.strip():
+                    ins = insert(food_allergens).values([{'food_id': inserted_food_id, 'allergen_id': allergen.strip()}])
+                    await session.execute(ins)
+        
     await session.commit()
     return {"status": "success"}
 
