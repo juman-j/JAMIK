@@ -35,7 +35,7 @@ def translate_to_json(text, to_list):
             output[lang] = [item.strip() for item in response.json()["translations"][0]["text"].split(",")]
         else:
             output[lang] = response.json()["translations"][0]["text"]
-    return json.dumps(output, ensure_ascii=False)
+    return output
 
 def convert_size(quantity, unit):
     conversion_factors = {
@@ -82,9 +82,10 @@ def convert_size(quantity, unit):
     }
     try:
         conversion = {conversion_factors[unit]["system"]: f"{round(quantity, 2)} {unit}", 
-                  conversion_factors[conversion_factors[unit]["converted_unit"]]["system"]: f"{round(quantity*conversion_factors[unit]['conversion_factor'], 2)} {conversion_factors[unit]['converted_unit']}"}
+                  conversion_factors[conversion_factors[unit]["converted_unit"]]["system"]:
+                      f"{round(quantity*conversion_factors[unit]['conversion_factor'], 2)} {conversion_factors[unit]['converted_unit']}"}
         
-        return json.dumps(conversion, ensure_ascii=False)
+        return conversion
     
     except TypeError:
             print("Zadané číslo v neplatném formátu.")
@@ -145,15 +146,16 @@ async def add_menu(email: str,
             'restaurant_id': restaurant_id
         }
         
-        query = select().where(
+        query = select(food).where(
         food.c.food_name == data["food_name"],
         food.c.ingredients == data["ingredients"],
         food.c.diet_restriction == data["diet_restriction"],
         food.c.restaurant_id == restaurant_id)
         result = await session.execute(query)
-
-        if result.fetchone():
-            food_id = result.fetchone()["food_id"]
+        
+        fetch_id = result.fetchone()
+        if fetch_id:
+            food_id = fetch_id[0]
             query = update(food).where(food.c.food_id == food_id).values(**data)
             await session.execute(query)
 

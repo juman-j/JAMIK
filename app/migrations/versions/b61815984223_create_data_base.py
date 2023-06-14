@@ -1,8 +1,8 @@
 """create data base
 
-Revision ID: e957ab8bef1f
+Revision ID: b61815984223
 Revises: 
-Create Date: 2023-06-14 16:27:06.912100
+Create Date: 2023-06-14 17:42:28.548223
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e957ab8bef1f'
+revision = 'b61815984223'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -48,19 +48,19 @@ def upgrade() -> None:
     sa.Column('ingredients', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('diet_restriction', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('nutritional_values', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('size', sa.Integer(), nullable=False),
-    sa.Column('unit', sa.String(), nullable=False),
+    sa.Column('size', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('price', sa.Integer(), nullable=False),
     sa.Column('currency', sa.String(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('restaurant_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['restaurant_id'], ['restaurant.restaurant_id'], ),
-    sa.PrimaryKeyConstraint('food_id'),
-    sa.UniqueConstraint('food_name', 'restaurant_id')
+    sa.PrimaryKeyConstraint('food_id')
     )
     op.create_table('user_preferences',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('preferred_ingredients', sa.ARRAY(sa.String()), nullable=False),
+    sa.Column('diet_restriction', sa.ARRAY(sa.String()), nullable=True),
+    sa.Column('metric_system', sa.String(), nullable=False),
     sa.Column('allergens', sa.ARRAY(sa.String()), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('user_id')
