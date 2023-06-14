@@ -81,5 +81,7 @@ user_preferences = Table(
     metadata, 
     Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
     Column('preferred_ingredients', ARRAY(String), nullable=False),
+    Column('diet_restriction', ARRAY(String), nullable=True),
+    Column('metric_system', String, nullable=False),
     Column('allergens', ARRAY(String), nullable=True)
 )
