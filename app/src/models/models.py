@@ -25,13 +25,11 @@ food = Table(
     Column('ingredients', JSONB, nullable=False),
     Column('diet_restriction', JSONB, nullable=True),
     Column('nutritional_values', JSONB, nullable=True),
-    Column('size', Integer, nullable=False),
-    Column('unit', String, nullable=False, ),
+    Column('size', JSONB, nullable=False),
     Column('price', Integer, nullable=False),
     Column('currency', String, nullable=False),
     Column('is_active', Boolean, nullable=False),
-    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id")),
-    UniqueConstraint('food_name', 'restaurant_id')
+    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id"))
 )
 
 food_allergens = Table(

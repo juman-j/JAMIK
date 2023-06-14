@@ -37,6 +37,60 @@ def translate_to_json(text, to_list):
             output[lang] = response.json()["translations"][0]["text"]
     return json.dumps(output, ensure_ascii=False)
 
+def convert_size(quantity, unit):
+    conversion_factors = {
+        'g': {
+            'system': 'metric',            
+            'conversion_factor': 0.035274,
+            'converted_unit': 'oz'
+        },
+        'oz': {
+            'system': 'imperial',              
+            'conversion_factor': 28.3495,
+            'converted_unit': 'g'
+        },
+        'lb': {
+            'system': 'imperial',             
+            'conversion_factor': 0.453592,
+            'converted_unit': 'kg'          
+        },
+        'kg': {
+            'system': 'metric',             
+            'conversion_factor': 2.20462,
+            'converted_unit': 'lb'              
+        },
+        'ml': {
+            'system': 'metric',            
+            'conversion_factor': 0.0338,
+            'converted_unit': 'fl oz'
+        },
+        'l': {
+            'system': 'metric',              
+            'conversion_factor': 2.11338,
+            'converted_unit': 'pt'
+        },
+        'fl oz': {
+            'system': 'imperial',             
+            'conversion_factor': 29.5735,
+            'converted_unit': 'ml'          
+        },
+        'pt': {
+            'system': 'imperial',             
+            'conversion_factor': 0.473176,
+            'converted_unit': 'l'              
+        }
+    }
+    try:
+        conversion = {conversion_factors[unit]["system"]: f"{round(quantity, 2)} {unit}", 
+                  conversion_factors[conversion_factors[unit]["converted_unit"]]["system"]: f"{round(quantity*conversion_factors[unit]['conversion_factor'], 2)} {conversion_factors[unit]['converted_unit']}"}
+        
+        return json.dumps(conversion, ensure_ascii=False)
+    
+    except TypeError:
+            print("Zadané číslo v neplatném formátu.")
+            
+    except KeyError:
+            print("Nepodporovaná jednotka.")
 
 @router.post("/")
 async def add_restaurant(new_restaurant: RestaurantCreate, 
@@ -84,8 +138,7 @@ async def add_menu(email: str,
             'ingredients': translate_to_json(row.ingredients, to_list=True),
             'diet_restriction': translate_to_json(row.diet_restriction, to_list=True),
             'nutritional_values': row.nutritional_values,
-            'size': row.size,
-            'unit': row.unit,
+            'size': convert_size(row.size, row.unit),
             'price': row.price,
             'currency': row.currency,
             'is_active': True,
