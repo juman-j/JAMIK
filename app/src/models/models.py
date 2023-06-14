@@ -79,7 +79,7 @@ class User(SQLAlchemyBaseUserTable[int], Base):
 user_preferences = Table(
     'user_preferences', 
     metadata, 
-    Column('id', Integer, ForeignKey('user.id'), primary_key=True),
-    Column('preferred_ingredients', ARRAY(String)), 
-    Column('allergens', ARRAY(String))
+    Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
+    Column('preferred_ingredients', ARRAY(String), nullable=False),
+    Column('allergens', ARRAY(String), nullable=True)
 )

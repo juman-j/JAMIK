@@ -13,7 +13,8 @@ router = APIRouter(
 
 
 @router.post("/")
-async def add_user_preferences(new_user_preferences: PreferenceCreate, session: AsyncSession = Depends(get_async_session)):
+async def add_user_preferences(new_user_preferences: PreferenceCreate,                               
+                               session: AsyncSession = Depends(get_async_session)):
     # if id already exist
     stmt = insert(user_preferences).values(**new_user_preferences.dict())
     await session.execute(stmt)
