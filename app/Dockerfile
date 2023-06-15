@@ -2,16 +2,18 @@ FROM python:3.10.11
 
 RUN pip install poetry
 
-RUN mkdir /fastapi_app
+RUN mkdir /app
 
-WORKDIR /fastapi_app
+WORKDIR /app
 
 COPY . .
 
 RUN poetry install
 
-WORKDIR /fastapi_app
+WORKDIR /app
 
-RUN alembic upgrade head
+RUN poetry run alembic upgrade head
 
-CMD gunicorn src.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8000
+EXPOSE 8000
+
+CMD poetry run gunicorn src.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8000
