@@ -1,8 +1,8 @@
-"""create data base
+"""Create tables
 
-Revision ID: b61815984223
+Revision ID: fb0cbb8a5214
 Revises: 
-Create Date: 2023-06-14 17:42:28.548223
+Create Date: 2023-06-17 13:36:15.480069
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b61815984223'
+revision = 'fb0cbb8a5214'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -75,7 +75,7 @@ def upgrade() -> None:
     op.create_table('user_history',
     sa.Column('id_user', sa.Integer(), nullable=True),
     sa.Column('id_food', sa.Integer(), nullable=True),
-    sa.Column('rating', sa.String(), nullable=True),
+    sa.Column('rating', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['id_food'], ['food.food_id'], ),
     sa.ForeignKeyConstraint(['id_user'], ['user.id'], )
     )

@@ -6,4 +6,5 @@ class PreferenceCreate(BaseModel):
     preferred_ingredients: list
     diet_restriction: list = None
     metric_system: str
-    allergens: list = None  
+    allergens: list = None
+

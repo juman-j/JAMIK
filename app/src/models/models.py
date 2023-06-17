@@ -51,7 +51,7 @@ user_history = Table(
     metadata,
     Column('id_user', Integer, ForeignKey("user.id")),
     Column('id_food', Integer, ForeignKey("food.food_id")),
-    Column('rating', String)
+    Column('rating', Integer)
 )
 
 user = Table(

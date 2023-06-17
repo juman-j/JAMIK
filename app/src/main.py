@@ -1,9 +1,13 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
+from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.models.models import User
-from src.auth.base_config import auth_backend, fastapi_users, current_user
-from src.auth.schemas import UserCreate, UserRead
+from src.auth.schemas import UserRead
+from src.auth.schemas import UserCreate
+from src.auth.base_config import auth_backend
+from src.auth.base_config import fastapi_users
+from src.auth.base_config import current_user
 
 from src.user_preferences.router import router as router_preferences
 from src.restaurants.router import router as router_restaurants
