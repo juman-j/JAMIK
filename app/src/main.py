@@ -9,11 +9,13 @@ from src.user_preferences.router import router as router_preferences
 from src.restaurants.router import router as router_restaurants
 from src.menu.router import router as router_menus
 
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title='JAMIK'
 )
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS Setup
 origins = [

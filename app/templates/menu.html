@@ -1,0 +1,237 @@
+<html>
+<head>
+    <title>Meníčko</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #F0F0F0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            background-color: #FFF;
+            border: 1px solid #DDD;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        li:hover {
+        background-color: #F9F9F9;
+        }
+
+        li:active {
+        transform: scale(0.98);
+        }
+
+        h3 {
+            color: #555;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        p {
+            color: #777;
+            margin: 0;
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            color: #FF0000;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .food-info {
+        display: flex;
+        align-items: center;
+        }
+
+        .food-text {
+        margin-right: 10px;
+        flex-grow: 0;
+        width: 500px;
+        }
+
+        .rating-buttons {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        margin-right: 10px;
+        width: 70px;
+        }
+
+        .like-button,
+        .dislike-button {
+        margin-bottom: 5px;
+        }
+
+        .rating-container {
+        display: None;
+        align-items: center;
+        }
+
+        .highlight {
+        background-color: rgb(59, 59, 80);
+        }
+
+    </style>
+</head>
+<body>
+    <input type="hidden" id="restaurantIdElement" value="{{ restaurant_id }}">
+    <input type="hidden" id="userIdElement" value="{{ user_id }}">
+    <h1>{{ restaurant_name }}</h1>
+    <div>
+        <label for="category-filter">Category:</label>
+        <select id="category-filter">
+            <option value="">All</option>
+            {% set unique_categories = [] %}
+            {% for item in menu_items %}
+                {% set category = item.category_name[language] %}
+                {% if category not in unique_categories %}
+                    {% set _ = unique_categories.append(category) %}
+                    <option value="{{ category }}">{{ category }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <ul>
+        {% for item in menu_items %}
+            {% set category = item.category_name[language] %}
+            <li data-category="{{ category }}" onclick="toggleRatingContainer(event)" data-food-id="{{ item.food_id }}">
+            <div class="food-info">
+            <div class="food-text">
+                <h3>{{ item.food_name[language] }}</h3>
+                <p>Category: {{ category }}</p>
+                <p>Ingredients: {{ item.ingredients[language] | join(', ') }}</p>
+                {% if item.allergen_ids[0] %}   
+                    <p>Allergens:
+                        {% set allergen_list = [] %}
+                        {% for allergen_id in item.allergen_ids %}
+                            {% if allergen_id in allergens %}
+                                {% set _ = allergen_list.append(allergen_id) %}
+                            {% endif %}
+                            {{ allergen_id }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% if allergen_list %}
+                        <h2>Caution: Contains allergen(s): {{ allergen_list | join(', ') }}</h2>
+                    {% endif %}
+                {% endif %} 
+                {% if item.diet_restriction[language][0] %}
+                    <p>Diet restriction: 
+                        {% set restriction_list = [] %}
+                        {% for restriction in item.diet_restriction[language] %}
+                            {% if restriction in diet_restriction %}
+                                {% set _ = restriction_list.append(restriction) %}
+                            {% endif %}
+                            {{ restriction }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% if restriction_list %}
+                        <h2>Suits your diet restrictions: {{ restriction_list | join(', ') }}</h2>
+                    {% endif %}
+                {% endif %}
+                <p>Nutritional values: {{ item.nutritional_values }}</p>
+                <p>Size: {{ item.size[metric_system] }}</p>
+                <p>Price: {{ item.price }} {{ item.currency }}</p>
+            </div>
+            <div class="rating-container">
+                <div class="rating-buttons">
+                  <button class="like-button" onclick="rateFood('like', this)">
+                    <img src="{{ url_for('static', path='/like-icon.png') }}" alt="Like" width="50">
+                  </button>
+                  <button class="dislike-button" onclick="rateFood('dislike', this)">
+                    <img src="{{ url_for('static', path='/dislike-icon.png') }}" alt="Dislike" width="50">
+                  </button>
+                </div>
+              </div>              
+        </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        const categoryFilter = document.getElementById('category-filter');
+        const menuItems = document.querySelectorAll('li');
+
+        categoryFilter.addEventListener('change', filterMenuItems);
+
+        function filterMenuItems() {
+            const selectedCategory = categoryFilter.value;
+            menuItems.forEach(item => {
+                const category = item.getAttribute('data-category');
+                item.style.display = selectedCategory === '' || selectedCategory === category ? 'block' : 'none';
+            });
+        }
+
+        async function rateFood(rating, button) {
+        const listItem = button.closest('li');
+        const likeButton = listItem.querySelector('.like-button');
+        const dislikeButton = listItem.querySelector('.dislike-button');
+
+        if (rating === 'like') {
+            likeButton.classList.toggle('highlight');
+            dislikeButton.classList.remove('highlight');
+            rating = likeButton.classList.contains('highlight') ? 'like' : 'neutral';
+        } else if (rating === 'dislike') {
+            dislikeButton.classList.toggle('highlight');
+            likeButton.classList.remove('highlight');
+            rating = dislikeButton.classList.contains('highlight') ? 'dislike' : 'neutral';
+        }
+
+        const userId = document.getElementById('userIdElement').value;
+        const foodId = listItem.getAttribute('data-food-id');
+
+        const data = {
+            rating: rating,
+            userId: userId,
+            foodId: foodId
+        };
+
+        const restaurantId = document.getElementById('restaurantIdElement').value;
+
+        await fetch('/menu/' + restaurantId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('Rating submitted successfully.');
+        })
+        .catch(error => {
+            console.error('An error occurred while submitting the rating:', error);
+        });
+        }
+
+        function toggleRatingContainer(event) {
+            const listItem = event.currentTarget;
+            const ratingContainer = listItem.querySelector('.rating-container');
+            const clickedElement = event.target;
+
+            if (ratingContainer.contains(clickedElement) && !clickedElement.classList.contains('rating-button')) {
+                return;
+            }
+
+            ratingContainer.style.display = ratingContainer.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+
+    </script>
+</body>
+</html>
+
