@@ -1,8 +1,8 @@
-import json
 import pandas as pd
 from fastapi import Depends
 from fastapi import APIRouter
 from sqlalchemy import select
+from sqlalchemy import update
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
@@ -10,6 +10,8 @@ from src.database import get_async_session
 from src.models.models import food
 from src.models.models import user_preferences
 from src.models.models import user_history
+from src.models.models import food_allergens
+from src.models.models import allergen
 from src.menu.schemas import AddRating
 
 
@@ -120,10 +122,10 @@ async def get_sorted_menu(sorted_list, session):
     return sorted_menu
 
 
-@router.get('/{restaurant_id}')
-async def get_menu(user_id: int, 
-       restaurant_id: int,
-       session: AsyncSession = Depends(get_async_session)
+@router.get("/{restaurant_id}")
+async def get_menu(user_id: int,
+                   restaurant_id: int,
+                   session: AsyncSession = Depends(get_async_session)
 ):
     # Prepare input for machine learning
     menu_df = await get_menu_df(restaurant_id, session)
@@ -132,6 +134,7 @@ async def get_menu(user_id: int,
 
     # ML
     sorted_list = ml(menu_df, list_ingredients, history)
+
     # Final result
     sorted_menu = await get_sorted_menu(sorted_list, session)
 
@@ -142,9 +145,69 @@ async def get_menu(user_id: int,
 async def add_rating(new_rating: AddRating,
                      session: AsyncSession = Depends(get_async_session)
 ):
-    stmt = insert(user_history).values(**new_rating.dict())
-    await session.execute(stmt)
-    await session.commit()
+    """
+    One user can only rate one dish once, 
+    but if he decides to change the rating, 
+    this data will be updated in the user_history table.
+
+    Args:
+        new_rating (AddRating): schema
+        session (AsyncSession)
+
+    Returns:
+        status: success
+    """
+    stmt = select(user_history.c.rating).where(user_history.c.id_food == new_rating.id_food,
+                                              user_history.c.id_user == new_rating.id_user)
+    result = await session.execute(stmt)
+    rating = result.scalar_one_or_none()
+    
+    if rating == None:
+        stmt = insert(user_history).values(**new_rating.dict())
+        await session.execute(stmt)
+        await session.commit()
+    elif rating != new_rating.rating:
+        stmt = update(user_history).where(
+            user_history.c.id_food == new_rating.id_food, 
+            user_history.c.id_user == new_rating.id_user).values(
+                rating = new_rating.rating)
+        await session.execute(stmt)
+        await session.commit()
+    else:
+        pass
+
 
     return {"status": "success"}
 
+
+@router.get("/{food_id}/allergens")
+async def get_allergen(food_id: int, 
+                       session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Returns the list of allergens for a specific dish 
+
+    Args:
+        food_id (int)
+        session (AsyncSession)
+
+    Returns:
+        allergen_list: list of dictionaries
+    """
+    stmt = select(food_allergens.c.allergen_id).where(food_allergens.c.food_id == food_id)
+    result = await session.execute(stmt)
+    allergen_id_list = [row[0] for row in result.fetchall()]
+
+    keys = select(allergen)
+    keys = await session.execute(keys)
+    keys = keys.keys()._keys
+
+    allergen_list = []
+    for row in allergen_id_list:
+        row = select(allergen).where(allergen.c.allergen_id == row)
+        row = await session.execute(row)
+
+        row = dict(zip(keys, list(row.fetchone())))
+        allergen_list.append(row)
+
+    return allergen_list
