@@ -21,7 +21,8 @@ app = FastAPI(
 
 # CORS Setup
 origins = [
-    "http://localhost:4200"
+    "http://localhost:4200",
+    "https://648e38c39ea3325336d1a319--incredible-stardust-814e38.netlify.app"
 ]
 
 
