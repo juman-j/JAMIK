@@ -25,13 +25,11 @@ food = Table(
     Column('ingredients', JSONB, nullable=False),
     Column('diet_restriction', JSONB, nullable=True),
     Column('nutritional_values', JSONB, nullable=True),
-    Column('size', Integer, nullable=False),
-    Column('unit', String, nullable=False, ),
+    Column('size', JSONB, nullable=False),
     Column('price', Integer, nullable=False),
     Column('currency', String, nullable=False),
     Column('is_active', Boolean, nullable=False),
-    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id")),
-    UniqueConstraint('food_name', 'restaurant_id')
+    Column('restaurant_id', Integer, ForeignKey("restaurant.restaurant_id"))
 )
 
 food_allergens = Table(
@@ -53,7 +51,7 @@ user_history = Table(
     metadata,
     Column('id_user', Integer, ForeignKey("user.id")),
     Column('id_food', Integer, ForeignKey("food.food_id")),
-    Column('rating', String)
+    Column('rating', Integer)
 )
 
 user = Table(
@@ -81,7 +79,9 @@ class User(SQLAlchemyBaseUserTable[int], Base):
 user_preferences = Table(
     'user_preferences', 
     metadata, 
-    Column('id', Integer, ForeignKey('user.id'), primary_key=True),
-    Column('preferred_ingredients', ARRAY(String)), 
-    Column('allergens', ARRAY(String))
+    Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
+    Column('preferred_ingredients', ARRAY(String), nullable=False),
+    Column('diet_restriction', ARRAY(String), nullable=True),
+    Column('metric_system', String, nullable=False),
+    Column('allergens', ARRAY(String), nullable=True)
 )

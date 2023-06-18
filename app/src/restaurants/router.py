@@ -2,7 +2,7 @@ import json
 import tempfile
 from fastapi import APIRouter, Depends, UploadFile
 import requests
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert 
 
@@ -35,8 +35,63 @@ def translate_to_json(text, to_list):
             output[lang] = [item.strip() for item in response.json()["translations"][0]["text"].split(",")]
         else:
             output[lang] = response.json()["translations"][0]["text"]
-    return json.dumps(output, ensure_ascii=False)
+    return output
 
+def convert_size(quantity, unit):
+    conversion_factors = {
+        'g': {
+            'system': 'metric',            
+            'conversion_factor': 0.035274,
+            'converted_unit': 'oz'
+        },
+        'oz': {
+            'system': 'imperial',              
+            'conversion_factor': 28.3495,
+            'converted_unit': 'g'
+        },
+        'lb': {
+            'system': 'imperial',             
+            'conversion_factor': 0.453592,
+            'converted_unit': 'kg'          
+        },
+        'kg': {
+            'system': 'metric',             
+            'conversion_factor': 2.20462,
+            'converted_unit': 'lb'              
+        },
+        'ml': {
+            'system': 'metric',            
+            'conversion_factor': 0.0338,
+            'converted_unit': 'fl oz'
+        },
+        'l': {
+            'system': 'metric',              
+            'conversion_factor': 2.11338,
+            'converted_unit': 'pt'
+        },
+        'fl oz': {
+            'system': 'imperial',             
+            'conversion_factor': 29.5735,
+            'converted_unit': 'ml'          
+        },
+        'pt': {
+            'system': 'imperial',             
+            'conversion_factor': 0.473176,
+            'converted_unit': 'l'              
+        }
+    }
+    try:
+        conversion = {conversion_factors[unit]["system"]: f"{round(quantity, 2)} {unit}", 
+                  conversion_factors[conversion_factors[unit]["converted_unit"]]["system"]:
+                      f"{round(quantity*conversion_factors[unit]['conversion_factor'], 2)} {conversion_factors[unit]['converted_unit']}"}
+        
+        return conversion
+    
+    except TypeError:
+            print("Zadané číslo v neplatném formátu.")
+            
+    except KeyError:
+            print("Nepodporovaná jednotka.")
 
 @router.post("/")
 async def add_restaurant(new_restaurant: RestaurantCreate, 
@@ -84,32 +139,45 @@ async def add_menu(email: str,
             'ingredients': translate_to_json(row.ingredients, to_list=True),
             'diet_restriction': translate_to_json(row.diet_restriction, to_list=True),
             'nutritional_values': row.nutritional_values,
-            'size': row.size,
-            'unit': row.unit,
+            'size': convert_size(row.size, row.unit),
             'price': row.price,
             'currency': row.currency,
             'is_active': True,
             'restaurant_id': restaurant_id
         }
         
-        ins = insert(food).values(**data).returning(food.c.food_id) 
-        result = await session.execute(ins) 
-        inserted_food_id = result.fetchone()[0] 
-        print(f"Inserted row with food_id: {inserted_food_id}")
+        query = select(food).where(
+        food.c.food_name == data["food_name"],
+        food.c.ingredients == data["ingredients"],
+        food.c.diet_restriction == data["diet_restriction"],
+        food.c.restaurant_id == restaurant_id)
+        result = await session.execute(query)
         
-        # ins = insert(food).values(**data).on_conflict_do_update(
-        #     index_elements=['food_name', 'restaurant_id'],set_={'is_active': True}).returning(food.c.food_id)
-        # result = await session.execute(ins)
-        # inserted_food_id = result.fetchone()[0]
-        # print(f"Inserted row with food_id: {inserted_food_id}")
-        
-        
-        for allergen in row.allergens.split(','):
-            if allergen.strip():
-                ins = insert(food_allergens).values([{'food_id': inserted_food_id, 'allergen_id': allergen.strip()}])
-                await session.execute(ins)
-        
+        fetch_id = result.fetchone()
+        if fetch_id:
+            food_id = fetch_id[0]
+            query = update(food).where(food.c.food_id == food_id).values(**data)
+            await session.execute(query)
 
+            query = delete(food_allergens).where(food_allergens.c.food_id == food_id)
+            await session.execute(query)
+
+            for allergen in row.allergens.split(','):
+                if allergen.strip():
+                    ins = insert(food_allergens).values([{'food_id': food_id, 'allergen_id': allergen.strip()}])
+                    await session.execute(ins)
+
+        else:
+            ins = insert(food).values(**data).returning(food.c.food_id) 
+            result = await session.execute(ins) 
+            inserted_food_id = result.fetchone()[0] 
+            print(f"Inserted row with food_id: {inserted_food_id}")
+            
+            for allergen in row.allergens.split(','):
+                if allergen.strip():
+                    ins = insert(food_allergens).values([{'food_id': inserted_food_id, 'allergen_id': allergen.strip()}])
+                    await session.execute(ins)
+        
     await session.commit()
     return {"status": "success"}
 
