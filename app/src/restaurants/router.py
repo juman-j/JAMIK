@@ -1,27 +1,34 @@
-import json
-import tempfile
-from fastapi import APIRouter, Depends, UploadFile
-import requests
-from sqlalchemy import select, update, delete
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert 
-
 import os
+import tempfile
+import requests
 import pandas as pd
+from fastapi import Depends
+from fastapi import APIRouter
+from fastapi import UploadFile
+from sqlalchemy import delete
+from sqlalchemy import select
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import insert
 
+from src.models.models import food
+from src.models.models import restaurant
+from src.models.models import food_allergens
 from src.database import get_async_session
-from src.models.models import restaurant, food, food_allergens
 from src.restaurants.schemas import RestaurantCreate
+
 
 URL = os.environ.get('URL')
 API_KEY = os.environ.get('API_KEY')
 
 target_languages = ["CS", "EN", "DE", "ES", "FR", "UK"]
 
+
 router = APIRouter(
     prefix="/restaurant",
     tags=["Restaurant"]
 )
+
 
 def translate_to_json(text, to_list):
     output = {}
@@ -36,6 +43,7 @@ def translate_to_json(text, to_list):
         else:
             output[lang] = response.json()["translations"][0]["text"]
     return output
+
 
 def convert_size(quantity, unit):
     conversion_factors = {
@@ -93,17 +101,17 @@ def convert_size(quantity, unit):
     except KeyError:
             print("Nepodporovaná jednotka.")
 
+
 @router.post("/")
 async def add_restaurant(new_restaurant: RestaurantCreate, 
-                                  session: AsyncSession = Depends(get_async_session)):
-    
+                         session: AsyncSession = Depends(get_async_session)
+):
     # Inserting data into the restaurant table
     stmt = insert(restaurant).values(**new_restaurant.dict())
     await session.execute(stmt)
-    
     await session.commit()
-    return {"status": "success"}
 
+    return {"status": "success"}
 
 
 @router.post("/menu")
@@ -183,7 +191,9 @@ async def add_menu(email: str,
 
 
 @router.get('/menu') 
-async def get_menu(email: str, session: AsyncSession = Depends(get_async_session)):
+async def get_menu(email: str, 
+                   session: AsyncSession = Depends(get_async_session)
+):
     """
     Maybe to remove this endpoint at all?
     And make the menu output only for clients...
@@ -195,5 +205,4 @@ async def get_menu(email: str, session: AsyncSession = Depends(get_async_session
     result = await session.execute(query)
     
     return result.fetchone()[0]
-
     

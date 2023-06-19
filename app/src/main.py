@@ -9,9 +9,9 @@ from src.auth.base_config import auth_backend
 from src.auth.base_config import fastapi_users
 from src.auth.base_config import current_user
 
-from src.user_preferences.router import router as router_preferences
-from src.restaurants.router import router as router_restaurants
 from src.menu.router import router as router_menus
+from src.restaurants.router import router as router_restaurants
+from src.user_preferences.router import router as router_preferences
 
 
 app = FastAPI(

@@ -1,17 +1,17 @@
 import pandas as pd
 from fastapi import Depends
 from fastapi import APIRouter
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy import update
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 
 from src.models.models import food
-from src.models.models import user_preferences
+from src.models.models import allergen
 from src.models.models import user_history
 from src.models.models import food_allergens
-from src.models.models import allergen
+from src.models.models import user_preferences
 from src.menu.schemas import AddRating
 
 
@@ -20,8 +20,26 @@ router = APIRouter(
     tags=["Menu"]
 )
 
+async def get_menu_list(restaurant_id, session):
+    """
+    Get a list of food_id for a specific restaurant.
 
-async def get_menu_df(restaurant_id, session):
+    Args:
+        restaurant_id (int)
+        session (AsyncSession)
+
+    Returns:
+        menu_list: list of food_id
+    """
+    stmt = select(food.c.food_id).where(food.c.restaurant_id == restaurant_id, 
+                                        food.c.is_active == True)
+    menu_list = await session.execute(stmt)
+    menu_list = [food_id[0] for food_id in menu_list.fetchall()]
+
+    return menu_list
+
+
+async def get_df(menu_list, history_list, session):
     """
     Returns the dataset with the actual meals at a certain restaurant
 
@@ -32,12 +50,11 @@ async def get_menu_df(restaurant_id, session):
     Returns:
         menu_df: Pandas dataframe
     """
-    stmt = select(food).where(food.c.restaurant_id == restaurant_id,
-                              food.c.is_active == True)
+    stmt = select(food).where(food.c.food_id.in_(menu_list + history_list))
     menu = await session.execute(stmt)
     munu = menu.fetchall()
     menu_list = []
-
+    
     for row in munu:
         one_meal = []
         for column in row:
@@ -48,11 +65,13 @@ async def get_menu_df(restaurant_id, session):
         menu_list.append(one_meal)
     
     menu_df = pd.DataFrame(data=menu_list, columns=food.columns)
+    menu_df.to_csv('vstupni_df_pro_ml.csv')
+    print('done')
     
     return menu_df
 
 
-async def get_ingredients(user_id, session):
+async def get_ingredients_list(user_id, session):
     """
     Returns the list of ingredients that the user selected in the questionnaire
 
@@ -64,13 +83,13 @@ async def get_ingredients(user_id, session):
         list_ingredients: list
     """
     stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
-    list_ingredients = await session.execute(stmt)
-    list_ingredients = list_ingredients.fetchall()[0][0]
+    ingredients_list = await session.execute(stmt)
+    ingredients_list = ingredients_list.fetchall()[0][0]
 
-    return list_ingredients
+    return ingredients_list
 
 
-async def get_history(user_id, session):
+async def get_history_list(user_id, session):
     """
     Returns the id of dishes that were rated by a certain user
 
@@ -79,19 +98,19 @@ async def get_history(user_id, session):
         session (AsyncSession)
 
     Returns:
-        history: list
+        history_list: list
     """
     try:
         stmt = select(user_history.c.id_food).where(user_history.c.id_user == user_id,
                                                     user_history.c.rating == 1)
-        history = await session.execute(stmt)
-        history = [food_id[0] for food_id in history.fetchall()]
+        history_list = await session.execute(stmt)
+        history_list = [food_id[0] for food_id in history_list.fetchall()]
     except AttributeError:
         print("User hasn't rated any dishes yet")
-    return history
+    return history_list
 
 
-def ml(menu_df, list_ingredients, history):
+def ml(df, list_ingredients, history_list, menu_list):
     dummy = [11, 2]
     return dummy
 
@@ -127,13 +146,32 @@ async def get_menu(user_id: int,
                    restaurant_id: int,
                    session: AsyncSession = Depends(get_async_session)
 ):
+    """
+    Several functions are called to prepare the data for 
+    feeding it into the machine learning part.
+    Next, the ml function is invoked, 
+    which takes the results of the preparatory functions as input and
+    returns the sorted food_id list.
+    The final function collects the menu from the food_id list and 
+    outputs a list of dishes in dictionary format, 
+    where each dish is defined in 5 languages.
+
+    Args:
+        user_id (int)
+        restaurant_id (int)
+        session (AsyncSession)
+
+    Returns:
+        sorted_menu: list of dictionaries
+    """
     # Prepare input for machine learning
-    menu_df = await get_menu_df(restaurant_id, session)
-    list_ingredients = await get_ingredients(user_id, session)
-    history = await get_history(user_id, session)
+    ingredients_list = await get_ingredients_list(user_id, session)
+    menu_list = await get_menu_list(restaurant_id, session)
+    history_list = await get_history_list(user_id, session)
+    df = await get_df(menu_list, history_list, session)
 
     # ML
-    sorted_list = ml(menu_df, list_ingredients, history)
+    sorted_list = ml(df, ingredients_list, history_list, menu_list)
 
     # Final result
     sorted_menu = await get_sorted_menu(sorted_list, session)
@@ -149,6 +187,8 @@ async def add_rating(new_rating: AddRating,
     One user can only rate one dish once, 
     but if he decides to change the rating, 
     this data will be updated in the user_history table.
+    If the user sets the same rating again, 
+    the previous action will be cancelled.
 
     Args:
         new_rating (AddRating): schema
@@ -173,8 +213,11 @@ async def add_rating(new_rating: AddRating,
                 rating = new_rating.rating)
         await session.execute(stmt)
         await session.commit()
-    else:
-        pass
+    elif rating == new_rating.rating:
+            stmt = delete(user_history).where(user_history.c.id_food == new_rating.id_food,
+                                              user_history.c.id_user == new_rating.id_user)
+            await session.execute(stmt)
+            await session.commit()
 
 
     return {"status": "success"}
