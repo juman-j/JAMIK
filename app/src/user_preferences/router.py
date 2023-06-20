@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import select, insert
+from fastapi import Depends
+from fastapi import APIRouter
+from sqlalchemy import select
+from sqlalchemy import insert
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
@@ -14,25 +17,39 @@ router = APIRouter(
 
 @router.post("/")
 async def add_user_preferences(new_user_preferences: PreferenceCreate,                               
-                               session: AsyncSession = Depends(get_async_session)):
-    # if id already exist
-    stmt = insert(user_preferences).values(**new_user_preferences.dict())
-    await session.execute(stmt)
-    await session.commit()
+                               session: AsyncSession = Depends(get_async_session)
+):
+    """
+    This endpoint writes the user's preferences to the database. 
+    If this user has already entered his preferences, the preferences will be updated.
+
+    Args:
+        new_user_preferences (PreferenceCreate): 
+                                                user_id: int
+                                                preferred_ingredients: list
+                                                diet_restriction: list = None
+                                                metric_system: str
+                                                allergens: list = None
+        session (AsyncSession)
+
+    Returns:
+        status: success
+    """
+    stmt = select(user_preferences.c.user_id).where(
+        user_preferences.c.user_id == new_user_preferences.user_id)
+    result = await session.execute(stmt)
+    user_id = result.scalar_one_or_none()
+    
+    if user_id == None:
+        stmt = insert(user_preferences).values(**new_user_preferences.dict())
+        await session.execute(stmt)
+        await session.commit()
+    else:
+        stmt = update(user_preferences).where(
+            user_preferences.c.user_id == new_user_preferences.user_id).values(
+                **new_user_preferences.dict())
+        await session.execute(stmt)
+        await session.commit()
+    
     return {"status": "success"}
-
-
-# @router.get("/")
-# async def get_user_preferences(user_id: int, session: AsyncSession = Depends(get_async_session)):
-#     query = select(user_preferences).where(user_preferences.c.user_id == user_id)
-#     result = await session.execute(query)
-#     preferences = []
-#     for row in result.all():
-#         preference = {
-#             "user_id": row[0],
-#             "preferred_ingredients": row[1],
-#             "allergens": row[2]
-#         }
-#         preferences.append(preference)
-#     return preferences
 

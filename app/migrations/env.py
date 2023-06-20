@@ -1,11 +1,11 @@
-from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
-
 import os
 import sys
+
+from alembic import context
+from sqlalchemy import pool
+from sqlalchemy import engine_from_config
+from logging.config import fileConfig
+
 
 sys.path.append(os.path.join(sys.path[0], 'src'))
 

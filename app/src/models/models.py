@@ -1,4 +1,11 @@
-from sqlalchemy import ARRAY, Boolean, MetaData, Table, Column ,Integer, String, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy import Table
+from sqlalchemy import ARRAY
+from sqlalchemy import Column
+from sqlalchemy import String
+from sqlalchemy import Boolean
+from sqlalchemy import Integer
+from sqlalchemy import MetaData
+from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable
 from src.database import Base
@@ -11,8 +18,8 @@ restaurant = Table(
     metadata, 
     Column('restaurant_id', Integer, primary_key=True),
     Column('name', String, nullable=False),
-    Column('phone_number', String, nullable=True),
-    Column('email', String, nullable=False)
+    Column('phone_number', String, nullable=True, unique=True),
+    Column('email', String, nullable=False, unique=True)
 )
 
 food = Table(
@@ -58,8 +65,8 @@ user = Table(
     'user', 
     metadata, 
     Column('id', Integer, primary_key=True),
-    Column('user_name', String, nullable=False),
-    Column('email', String, nullable=False),
+    Column('user_name', String, nullable=False, unique=True),
+    Column('email', String, nullable=False, unique=True),
     Column('hashed_password', String, nullable=False),
     Column('is_active', Boolean, default=True, nullable=False),    
     Column('is_superuser', Boolean, default=False, nullable=False),
@@ -68,7 +75,7 @@ user = Table(
 
 class User(SQLAlchemyBaseUserTable[int], Base):
         id: int = Column('id', Integer, primary_key=True)
-        user_name: str = Column('user_name', String, nullable=False)
+        user_name: str = Column('user_name', String, nullable=False, unique=True)
         email: str = Column(String(length=320), unique=True, index=True, nullable=False)
         hashed_password: str = Column(String(length=1024), nullable=False)
         is_active: bool = Column(Boolean, default=True, nullable=False)
