@@ -1,5 +1,5 @@
-from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import APIRouter
 from sqlalchemy import select
 from sqlalchemy import insert
 from sqlalchemy import update

@@ -1,11 +1,19 @@
+import numpy as np
 import pandas as pd
+
 from fastapi import Depends
 from fastapi import APIRouter
-from sqlalchemy import delete, select
+from fastapi.responses import JSONResponse
+
+from sqlalchemy import select
+from sqlalchemy import delete
 from sqlalchemy import update
 from sqlalchemy import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import get_async_session
+
+from sklearn.neighbors import NearestNeighbors
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from src.models.models import food
 from src.models.models import allergen
@@ -13,6 +21,7 @@ from src.models.models import user_history
 from src.models.models import food_allergens
 from src.models.models import user_preferences
 from src.menu.schemas import AddRating
+from src.database import get_async_session
 
 
 router = APIRouter(
@@ -64,10 +73,21 @@ async def get_df(menu_list, history_list, session):
                 one_meal.append(column.get('EN'))
         menu_list.append(one_meal)
     
-    menu_df = pd.DataFrame(data=menu_list, columns=food.columns)
-    menu_df.to_csv('vstupni_df_pro_ml.csv')
-    print('done')
+    columns = ['food_id', 
+               'food_name', 
+               'category_name', 
+               'dish_picture_url', 
+               'ingredients', 
+               'diet_restriction', 
+               'nutritional_values', 
+               'size', 
+               'price', 
+               'currency', 
+               'is_active', 
+               'restaurant_id']
     
+    menu_df = pd.DataFrame(data=menu_list, columns=columns)
+
     return menu_df
 
 
@@ -82,9 +102,14 @@ async def get_ingredients_list(user_id, session):
     Returns:
         list_ingredients: list
     """
-    stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
-    ingredients_list = await session.execute(stmt)
-    ingredients_list = ingredients_list.fetchall()[0][0]
+    try:
+        stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
+        ingredients_list = await session.execute(stmt)
+        ingredients_list = ingredients_list.fetchall()[0][0]
+
+    except IndexError:
+        error_message = 'The user did not complete the questionnaire. More specifically: the field with the ingredients.'
+        return JSONResponse(status_code=400, content={"detail": error_message})
 
     return ingredients_list
 
@@ -111,8 +136,56 @@ async def get_history_list(user_id, session):
 
 
 def ml(df, list_ingredients, history_list, menu_list):
-    dummy = [11, 2]
-    return dummy
+    df['ingredients_str'] = df['ingredients'].apply(lambda x: str(x))
+    df['ingredients_str'] = df['ingredients_str'].str.strip("[]").str.replace("'", "")
+    df = df[["food_id", "food_name", "ingredients_str", "category_name"]]
+
+    # Get a new unique ID for each new row
+    if list_ingredients:
+      new_rows = pd.DataFrame(columns=df.columns)
+      new_ids = []
+      # Iterate over the new ingredients and create a new row for each
+      for count, ingredient in enumerate(list_ingredients, 1):
+          new_row = df.iloc[0].copy()  # Copy the first row to get the structure
+          new_row['food_id'] = df['food_id'].max() + count
+          new_row['ingredients_str'] = str(ingredient)
+          new_row['food_name'] = ""
+          new_row['category_name'] = ""
+          new_rows.loc[len(new_rows)] = new_row
+          # new_rows = new_rows.append(new_row, ignore_index=False)
+          new_ids.append(new_row['food_id'])
+
+      # Concatenate the original DataFrame and the new rows DataFrame
+      df = pd.concat([df, new_rows], ignore_index=False)
+      df = df.set_index('food_id')
+      history_list = history_list + new_ids
+
+    name_vectorizer = TfidfVectorizer(max_features=1000)
+    name_vectors = name_vectorizer.fit_transform(df['food_name'] + " " + df['category_name'] + " " + df['ingredients_str'])
+
+    # Create a preprocessed dataframe with the dense matrix
+    df_final = pd.DataFrame(name_vectors.toarray())
+    df_final.index = df.index
+
+    def recommend_meals(menu_list, history_list, df_final):
+      past_features = df_final.loc[history_list]
+      new_features = df_final.loc[menu_list]
+      # vytvori se podprostor vzdalenosti se starymi jidly
+      nn = NearestNeighbors()
+      nn.fit(past_features)
+
+      # najit vzdalenost k nejblizsich sousedu pro nova jidla
+      k = len(history_list) # jako k sousedu = vsechna stara jidla
+      distances, indices = nn.kneighbors(new_features, n_neighbors=k)
+      avg_distances = distances.mean(axis=1)
+
+      menu_list = np.array(menu_list)
+      sorted_ids = menu_list[avg_distances.argsort()]
+      return sorted_ids.tolist()
+
+    sorted_list = recommend_meals(menu_list, history_list, df_final)
+
+    return sorted_list
 
 
 async def get_sorted_menu(sorted_list, session):
@@ -169,7 +242,7 @@ async def get_menu(user_id: int,
     menu_list = await get_menu_list(restaurant_id, session)
     history_list = await get_history_list(user_id, session)
     df = await get_df(menu_list, history_list, session)
-
+    
     # ML
     sorted_list = ml(df, ingredients_list, history_list, menu_list)
 
@@ -197,30 +270,34 @@ async def add_rating(new_rating: AddRating,
     Returns:
         status: success
     """
-    stmt = select(user_history.c.rating).where(user_history.c.id_food == new_rating.id_food,
-                                              user_history.c.id_user == new_rating.id_user)
-    result = await session.execute(stmt)
-    rating = result.scalar_one_or_none()
-    
-    if rating == None:
-        stmt = insert(user_history).values(**new_rating.dict())
-        await session.execute(stmt)
-        await session.commit()
-    elif rating != new_rating.rating:
-        stmt = update(user_history).where(
-            user_history.c.id_food == new_rating.id_food, 
-            user_history.c.id_user == new_rating.id_user).values(
-                rating = new_rating.rating)
-        await session.execute(stmt)
-        await session.commit()
-    elif rating == new_rating.rating:
-            stmt = delete(user_history).where(user_history.c.id_food == new_rating.id_food,
-                                              user_history.c.id_user == new_rating.id_user)
+    try:
+        stmt = select(user_history.c.rating).where(user_history.c.id_food == new_rating.id_food,
+                                                user_history.c.id_user == new_rating.id_user)
+        result = await session.execute(stmt)
+        rating = result.scalar_one_or_none()
+        
+        if rating == None:
+            stmt = insert(user_history).values(**new_rating.dict())
             await session.execute(stmt)
             await session.commit()
-
-
-    return {"status": "success"}
+        elif rating != new_rating.rating:
+            stmt = update(user_history).where(
+                user_history.c.id_food == new_rating.id_food, 
+                user_history.c.id_user == new_rating.id_user).values(
+                    rating = new_rating.rating)
+            await session.execute(stmt)
+            await session.commit()
+        elif rating == new_rating.rating:
+                stmt = delete(user_history).where(user_history.c.id_food == new_rating.id_food,
+                                                user_history.c.id_user == new_rating.id_user)
+                await session.execute(stmt)
+                await session.commit()
+                
+        return {"status": "success"}
+    
+    except IntegrityError:
+        error_message = 'Please try other parameters'
+        return JSONResponse(status_code=400, content={"detail": error_message})
 
 
 @router.get("/{food_id}/allergens")
@@ -249,8 +326,8 @@ async def get_allergen(food_id: int,
     for row in allergen_id_list:
         row = select(allergen).where(allergen.c.allergen_id == row)
         row = await session.execute(row)
-
         row = dict(zip(keys, list(row.fetchone())))
         allergen_list.append(row)
-
+    
     return allergen_list
+

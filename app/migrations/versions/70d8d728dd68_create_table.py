@@ -1,8 +1,8 @@
-"""Create tables
+"""Create table
 
-Revision ID: fb0cbb8a5214
+Revision ID: 70d8d728dd68
 Revises: 
-Create Date: 2023-06-17 13:36:15.480069
+Create Date: 2023-06-20 18:31:54.697316
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'fb0cbb8a5214'
+revision = '70d8d728dd68'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,7 +28,9 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('phone_number', sa.String(), nullable=True),
     sa.Column('email', sa.String(), nullable=False),
-    sa.PrimaryKeyConstraint('restaurant_id')
+    sa.PrimaryKeyConstraint('restaurant_id'),
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('phone_number')
     )
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -38,7 +40,9 @@ def upgrade() -> None:
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('is_superuser', sa.Boolean(), nullable=False),
     sa.Column('is_verified', sa.Boolean(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('user_name')
     )
     op.create_table('food',
     sa.Column('food_id', sa.Integer(), autoincrement=True, nullable=False),

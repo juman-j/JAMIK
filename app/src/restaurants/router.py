@@ -17,12 +17,13 @@ from src.models.models import food_allergens
 from src.database import get_async_session
 from src.restaurants.schemas import RestaurantCreate
 
+from sqlalchemy.exc import IntegrityError
+from fastapi.responses import JSONResponse
 
-URL = os.environ.get('URL')
-API_KEY = os.environ.get('API_KEY')
+DEEPL_URL = os.environ.get('DEEPL_URL')
+DEEPL_API_KEY = os.environ.get('DEEPL_API_KEY')
 
 target_languages = ["CS", "EN", "DE", "ES", "FR", "UK"]
-
 
 router = APIRouter(
     prefix="/restaurant",
@@ -31,10 +32,19 @@ router = APIRouter(
 
 
 def translate_to_json(text, to_list):
+    """_summary_
+
+    Args:
+        text (_type_): _description_
+        to_list (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     output = {}
     for lang in target_languages:
-        response = requests.post(URL, data={
-        "auth_key": API_KEY,
+        response = requests.post(DEEPL_URL, data={
+        "auth_key": DEEPL_API_KEY,
         "text": text,
         "target_lang": lang
         })
@@ -42,10 +52,20 @@ def translate_to_json(text, to_list):
             output[lang] = [item.strip() for item in response.json()["translations"][0]["text"].split(",")]
         else:
             output[lang] = response.json()["translations"][0]["text"]
+    
     return output
 
 
 def convert_size(quantity, unit):
+    """_summary_
+
+    Args:
+        quantity (_type_): _description_
+        unit (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     conversion_factors = {
         'g': {
             'system': 'metric',            
@@ -96,22 +116,27 @@ def convert_size(quantity, unit):
         return conversion
     
     except TypeError:
-            print("Zadané číslo v neplatném formátu.")
+            print("Entered number in invalid format.")
             
     except KeyError:
-            print("Nepodporovaná jednotka.")
+            print("Unsupported unit.")
 
 
 @router.post("/")
 async def add_restaurant(new_restaurant: RestaurantCreate, 
                          session: AsyncSession = Depends(get_async_session)
 ):
-    # Inserting data into the restaurant table
-    stmt = insert(restaurant).values(**new_restaurant.dict())
-    await session.execute(stmt)
-    await session.commit()
+    try:
+        stmt = insert(restaurant).values(**new_restaurant.dict())
+        await session.execute(stmt)
+        await session.commit()
+        
+        return {"status": "success"}
 
-    return {"status": "success"}
+    except IntegrityError:
+        error_message = "This phone number or email address is already in our database."
+        return JSONResponse(status_code=400, content={"detail": error_message})
+    
 
 
 @router.post("/menu")
