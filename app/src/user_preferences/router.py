@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 from src.models.models import user_preferences
 from src.user_preferences.schemas import PreferenceCreate
+from check_flag import set_completion_flag
 
 
 router = APIRouter(
@@ -35,7 +36,7 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
         session (AsyncSession)
 
     Returns:
-        status: success
+        status: successx
     """
     print('test_new_session')
     stmt = select(user_preferences.c.user_id).where(
@@ -47,27 +48,12 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
         stmt = insert(user_preferences).values(**new_user_preferences.dict())
         await session.execute(stmt)
         await session.commit()
-        
     else:
-        print('before update')
-        upd = update(user_preferences).where(
+        stmt = update(user_preferences).where(
             user_preferences.c.user_id == new_user_preferences.user_id).values(
                 **new_user_preferences.dict())
-        await session.execute(upd)
-        print('AFTER UPDATE')
+        await session.execute(stmt)
         await session.commit()
     
-    # ingredients_list calculate for MENU router
-    stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
-    
-    global ingredients_list
-    ingredients_list = await session.execute(stmt)
-    ingredients_list = ingredients_list.fetchall()[0][0]
-    print('AFTER SELECT in menu router ingredients_list 1:', type(ingredients_list))
-    print('ingredients_list 1:', ingredients_list)
-        
-    
-    return {"status": "success",
-            "ingredients_list": ingredients_list}
+    return {"status": "success"}
 
-# print('AAAAAA', ingredients_list)
