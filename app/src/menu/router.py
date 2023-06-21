@@ -22,6 +22,8 @@ from src.models.models import food_allergens
 from src.models.models import user_preferences
 from src.menu.schemas import AddRating
 from src.database import get_async_session
+from check_flag import check_completion_flag, set_completion_flag_false
+import asyncio
 
 
 router = APIRouter(
@@ -219,6 +221,13 @@ async def get_menu(user_id: int,
                    restaurant_id: int,
                    session: AsyncSession = Depends(get_async_session)
 ):
+    while True:
+        flag_value = check_completion_flag()
+        if flag_value == True:
+            set_completion_flag_false()
+            break
+        await asyncio.sleep(0.5)
+
     """
     Several functions are called to prepare the data for 
     feeding it into the machine learning part.
