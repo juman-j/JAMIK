@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 import pandas as pd
 
@@ -102,7 +103,7 @@ async def get_ingredients_list(user_id, session):
     Returns:
         list_ingredients: list
     """
-    try:
+    try:        
         stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
         ingredients_list = await session.execute(stmt)
         ingredients_list = ingredients_list.fetchall()[0][0]
@@ -130,8 +131,10 @@ async def get_history_list(user_id, session):
                                                     user_history.c.rating == 1)
         history_list = await session.execute(stmt)
         history_list = [food_id[0] for food_id in history_list.fetchall()]
+            
     except AttributeError:
         print("User hasn't rated any dishes yet")
+    
     return history_list
 
 
@@ -141,7 +144,7 @@ def ml(df, list_ingredients, history_list, menu_list):
     df = df[["food_id", "food_name", "ingredients_str", "category_name"]]
 
     # Get a new unique ID for each new row
-    if list_ingredients:
+    if type(list_ingredients) == list and len(list_ingredients) != 0:
       new_rows = pd.DataFrame(columns=df.columns)
       new_ids = []
       # Iterate over the new ingredients and create a new row for each
@@ -214,11 +217,13 @@ async def get_sorted_menu(sorted_list, session):
     return sorted_menu
 
 
+
 @router.get("/{restaurant_id}")
 async def get_menu(user_id: int,
                    restaurant_id: int,
                    session: AsyncSession = Depends(get_async_session)
 ):
+    await asyncio.sleep(0.5)
     """
     Several functions are called to prepare the data for 
     feeding it into the machine learning part.
