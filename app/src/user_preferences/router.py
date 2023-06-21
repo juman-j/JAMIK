@@ -33,10 +33,9 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
                                                 diet_restriction: list = None
                                                 metric_system: str
                                                 allergens: list = None
-        session (AsyncSession)
 
     Returns:
-        status: successx
+        status: success
     """
     stmt = select(user_preferences.c.user_id).where(
         user_preferences.c.user_id == new_user_preferences.user_id)
@@ -57,3 +56,25 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
     set_completion_flag()
     return {"status": "success"}
 
+
+@router.post("/check")
+async def check_user_preferences(user_id: int,
+                               session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Checking the completion of the questionnaire.
+    Args:
+        user_id (int)
+    Returns:
+        status: success
+    """
+    stmt = select(user_preferences.c.user_id).where(
+        user_preferences.c.user_id == user_id)
+    result = await session.execute(stmt)
+    user_id = result.scalar_one_or_none()
+
+    if user_id:
+        return True
+    else:
+        return False
+    
