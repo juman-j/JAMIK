@@ -57,9 +57,7 @@ async def authenticated_route(user: User = Depends(current_user)):
 
 app.include_router(router_preferences)
 
-
 app.include_router(router_restaurants)
-
 
 app.include_router(router_menus)
 

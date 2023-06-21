@@ -22,6 +22,7 @@ from src.models.models import food_allergens
 from src.models.models import user_preferences
 from src.menu.schemas import AddRating
 from src.database import get_async_session
+import time
 
 
 router = APIRouter(
@@ -91,27 +92,29 @@ async def get_df(menu_list, history_list, session):
     return menu_df
 
 
-async def get_ingredients_list(user_id, session):
-    """
-    Returns the list of ingredients that the user selected in the questionnaire
+# async def get_ingredients_list(user_id, session):
+#     """
+#     Returns the list of ingredients that the user selected in the questionnaire
 
-    Args:
-        user_id (int)
-        session (AsyncSession)
+#     Args:
+#         user_id (int)
+#         session (AsyncSession)
 
-    Returns:
-        list_ingredients: list
-    """
-    try:
-        stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
-        ingredients_list = await session.execute(stmt)
-        ingredients_list = ingredients_list.fetchall()[0][0]
+#     Returns:
+#         list_ingredients: list
+#     """
+#     try:        
+#         stmt = select(user_preferences.c.preferred_ingredients).where(user_preferences.c.user_id == user_id)
+#         ingredients_list = await session.execute(stmt)
+#         ingredients_list = ingredients_list.fetchall()[0][0]
+#         print('AFTER SELECT in menu router ingredients_list 1:', type(ingredients_list))
+#         print('ingredients_list 1:', ingredients_list)
 
-    except IndexError:
-        error_message = 'The user did not complete the questionnaire. More specifically: the field with the ingredients.'
-        return JSONResponse(status_code=400, content={"detail": error_message})
+#     except IndexError:
+#         error_message = 'The user did not complete the questionnaire. More specifically: the field with the ingredients.'
+#         return JSONResponse(status_code=400, content={"detail": error_message})
 
-    return ingredients_list
+#     return ingredients_list
 
 
 async def get_history_list(user_id, session):
@@ -130,18 +133,22 @@ async def get_history_list(user_id, session):
                                                     user_history.c.rating == 1)
         history_list = await session.execute(stmt)
         history_list = [food_id[0] for food_id in history_list.fetchall()]
+            
     except AttributeError:
         print("User hasn't rated any dishes yet")
     return history_list
 
 
 def ml(df, list_ingredients, history_list, menu_list):
+    print('ML list_ingredients:',list_ingredients)
+    print('ML history_list:', history_list)
+    print('ML menu_list:', menu_list)
     df['ingredients_str'] = df['ingredients'].apply(lambda x: str(x))
     df['ingredients_str'] = df['ingredients_str'].str.strip("[]").str.replace("'", "")
     df = df[["food_id", "food_name", "ingredients_str", "category_name"]]
 
     # Get a new unique ID for each new row
-    if list_ingredients:
+    if type(list_ingredients) == list and len(list_ingredients) != 0:
       new_rows = pd.DataFrame(columns=df.columns)
       new_ids = []
       # Iterate over the new ingredients and create a new row for each
@@ -214,6 +221,7 @@ async def get_sorted_menu(sorted_list, session):
     return sorted_menu
 
 
+
 @router.get("/{restaurant_id}")
 async def get_menu(user_id: int,
                    restaurant_id: int,
@@ -238,11 +246,13 @@ async def get_menu(user_id: int,
         sorted_menu: list of dictionaries
     """
     # Prepare input for machine learning
-    ingredients_list = await get_ingredients_list(user_id, session)
+    # ingredients_list = await get_ingredients_list(user_id, session)
     menu_list = await get_menu_list(restaurant_id, session)
     history_list = await get_history_list(user_id, session)
     df = await get_df(menu_list, history_list, session)
     
+    from src.user_preferences.router import ingredients_list
+    print('ingredience in MENU router',ingredients_list)
     # ML
     sorted_list = ml(df, ingredients_list, history_list, menu_list)
 
