@@ -22,7 +22,8 @@ from src.models.models import food_allergens
 from src.models.models import user_preferences
 from src.menu.schemas import AddRating
 from src.database import get_async_session
-from check_flag import check_completion_flag, set_completion_flag_false
+from check_flag import check_completion_flag
+from check_flag import set_completion_flag_false
 import asyncio
 
 

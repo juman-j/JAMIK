@@ -38,7 +38,6 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
     Returns:
         status: successx
     """
-    print('test_new_session')
     stmt = select(user_preferences.c.user_id).where(
         user_preferences.c.user_id == new_user_preferences.user_id)
     result = await session.execute(stmt)
@@ -55,5 +54,6 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
         await session.execute(stmt)
         await session.commit()
     
+    set_completion_flag()
     return {"status": "success"}
 
