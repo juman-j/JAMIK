@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_async_session
 from src.models.models import user_preferences
 from src.user_preferences.schemas import PreferenceCreate
-from check_flag import set_completion_flag
 
 
 router = APIRouter(
@@ -16,7 +15,6 @@ router = APIRouter(
     tags=["Preferences"]
 )
 
-# ingredients_list = []
 
 @router.post("/")
 async def add_user_preferences(new_user_preferences: PreferenceCreate,                               
@@ -53,7 +51,6 @@ async def add_user_preferences(new_user_preferences: PreferenceCreate,
         await session.execute(stmt)
         await session.commit()
     
-    set_completion_flag()
     return {"status": "success"}
 
 
