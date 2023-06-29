@@ -20,13 +20,15 @@ The variables that need to be added:
   `DB_NAME`  
   `DB_USER`  
   `DB_PASS`  
-  `SECRET_AUTH` (A constant secret which is used to encode the token)
-2. Create a virtual environment with a python version greater than or equal to **3.10**
-3. Install poetry: `pip install poetry`
-4. Installing dependencies: `poetry install`
-5. Creating all tables in the database: `poetry run alembic upgrade head`
-6. Start the application on the local machine: `poetry run uvicorn src.main:app --reload`
-7. Documentation of the application will be available at `http://127.0.0.1:8000/docs`
+  `SECRET_AUTH` (A constant secret which is used to encode the token)  
+  `DEEPL_URL = "https://api-free.deepl.com/v2/translate"`  
+  `DEEPL_API_KEY = your key`
+3. Create a virtual environment with a python version greater than or equal to **3.10**
+4. Install poetry: `pip install poetry`
+5. Installing dependencies: `poetry install`
+6. Creating all tables in the database: `poetry run alembic upgrade head`
+7. Start the application on the local machine: `poetry run uvicorn src.main:app --reload`
+8. Documentation of the application will be available at `http://127.0.0.1:8000/docs`
 
 ----
 This part of the project was created by Artem Sorokin, Jan Doleček.  
