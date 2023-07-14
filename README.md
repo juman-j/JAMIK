@@ -3,7 +3,11 @@ JAMIK - Choosing food made simple: Personalized AI-powered menu recommendations.
 This repository contains _the backend part_ of the final project
 of the master's program Data Analytics for Business at the Prague University of Economics and Business.
 
-
+Authors of this part of the project:
+- Artem Sorokin
+- Jan Doleček  
+- Kryštof Dostál (the recommendation engine)
+---
 
 The goal of the project was to create a web application to generate a personalized restaurant menu.  
 ### Basic Functions:
@@ -29,7 +33,3 @@ The variables that need to be added:
 6. Creating all tables in the database: `poetry run alembic upgrade head`
 7. Start the application on the local machine: `poetry run uvicorn src.main:app --reload`
 8. Documentation of the application will be available at `http://127.0.0.1:8000/docs`
-
-----
-This part of the project was created by Artem Sorokin, Jan Doleček.  
-The recommendation engine was created by Kryštof Dostál.
